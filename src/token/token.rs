@@ -4,7 +4,7 @@ pub struct Token {
     pub literal: String
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Tokens {
     ILLEGAL,
     EOF,
@@ -26,4 +26,9 @@ pub enum Tokens {
     ASTERISK,
     LT,
     GT,
+    TRUE,
+    FALSE,
+    IF,
+    ELSE,
+    RETURN,
 }
