@@ -19,5 +19,11 @@ pub enum Tokens {
     LBRACE,
     RBRACE,
     FUNCTION,
-    LET
+    LET,
+    BANG,
+    MINUS,
+    SLASH,
+    ASTERISK,
+    LT,
+    GT,
 }

@@ -68,7 +68,7 @@ impl Iterator for LexerIterItem {
         if self.index == self.lexer.input.len() {
             return None;
         }
-        while self.lexer.input[self.index] == ' ' || self.lexer.input[self.index] == 0xA as char {
+        while char::is_whitespace(self.lexer.input[self.index]) { 
             self.index += 1
         }
         let output = match &self.lexer.input[self.index] {
@@ -104,6 +104,30 @@ impl Iterator for LexerIterItem {
                 token_type: Tokens::COMMA,
                 literal: String::from(','),
             }),
+            '-' => Some(Token {
+                token_type: Tokens::MINUS,
+                literal: String::from('-'),
+            }),
+            '!' => Some(Token {
+                token_type: Tokens::BANG,
+                literal: String::from('!'),
+            }),
+            '/' => Some(Token {
+                token_type: Tokens::SLASH,
+                literal: String::from('/'),
+            }),
+            '*' => Some(Token {
+                token_type: Tokens::ASTERISK,
+                literal: String::from('*'),
+            }),
+            '<' => Some(Token {
+                token_type: Tokens::LT,
+                literal: String::from('<'),
+            }),
+            '>' => Some(Token {
+                token_type: Tokens::GT,
+                literal: String::from('>'),
+            }),
             'a'..='z' | 'A'..='Z' | '_' => {
                 let ident = self.read_identifier();
                 self.index -=1;
@@ -130,32 +154,17 @@ mod lexer_tester {
     use crate::token::token::Tokens;
 
     #[test]
-    fn test_next_token() {
-        let input = "=+(){};";
-
-        let expected: Vec<Token> = vec![
-            Token { token_type: Tokens::ASSIGN, literal: String::from("=") },
-            Token { token_type: Tokens::PLUS, literal: String::from("+") },
-            Token { token_type: Tokens::LPAREN, literal: String::from("(") },
-            Token { token_type: Tokens::RPAREN, literal: String::from(")") },
-            Token { token_type: Tokens::LBRACE, literal: String::from("{") },
-            Token { token_type: Tokens::RBRACE, literal: String::from("}") },
-            Token { token_type: Tokens::SEMICOLON, literal: String::from(";") },
-        ];
-
-        let lexer = Lexer::new(String::from(input));
-
-        let actual: Vec<Token> = lexer.into_iter().collect();
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn test_basic_function() {
+    fn test_lexer() {
         let input = "let five = 5;
         let ten = 10;
-        let add = fn(x,y) { x + y; };
-        let result = add(five, ten);";
+
+        let add = fn(x,y) { 
+            x + y; 
+        };
+        let result = add(five, ten);
+        !-/*5;
+
+        5 < 10 > 5;";
 
         let expected = vec![
             Token { token_type: Tokens::LET, literal: String::from("let") },
@@ -193,6 +202,18 @@ mod lexer_tester {
             Token { token_type: Tokens::COMMA, literal: String::from(",") },
             Token { token_type: Tokens::IDENT, literal: String::from("ten") },
             Token { token_type: Tokens::RPAREN, literal: String::from(")") },
+            Token { token_type: Tokens::SEMICOLON, literal: String::from(";") },
+            Token { token_type: Tokens::BANG, literal: String::from("!") },
+            Token { token_type: Tokens::MINUS, literal: String::from("-") },
+            Token { token_type: Tokens::SLASH, literal: String::from("/") },
+            Token { token_type: Tokens::ASTERISK, literal: String::from("*") },
+            Token { token_type: Tokens::INT, literal: String::from("5") },
+            Token { token_type: Tokens::SEMICOLON, literal: String::from(";") },
+            Token { token_type: Tokens::INT, literal: String::from("5") },
+            Token { token_type: Tokens::LT, literal: String::from("<") },
+            Token { token_type: Tokens::INT, literal: String::from("10") },
+            Token { token_type: Tokens::GT, literal: String::from(">") },
+            Token { token_type: Tokens::INT, literal: String::from("5") },
             Token { token_type: Tokens::SEMICOLON, literal: String::from(";") },
         ];
 
