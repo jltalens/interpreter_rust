@@ -44,8 +44,6 @@ impl LexerIterItem {
             "let" => Tokens::LET,
             _ => Tokens::IDENT
         };
-        // Ugly, change it
-        self.index -=1;
         Some(Token {
             token_type,
             literal,
@@ -57,9 +55,8 @@ impl LexerIterItem {
         while ('0'..='9').contains(&self.lexer.input[self.index]) {
             self.index += 1;
         }
-        // Ugly, change it. Maybe this should be done in the Iterator itself.
-        self.index -=1;
-        Some(Token { token_type: Tokens::INT, literal: self.lexer.input[initial_position..self.index].iter().collect::<String>()} )
+        let token = Token { token_type: Tokens::INT, literal: self.lexer.input[initial_position..self.index].iter().collect::<String>()} ;
+        Some(token)
     }
 }
 
@@ -77,7 +74,7 @@ impl Iterator for LexerIterItem {
         let output = match &self.lexer.input[self.index] {
             '=' => Some(Token {
                 token_type: Tokens::ASSIGN,
-                literal: String::from("+"),
+                literal: String::from("="),
             }),
             '+' => Some(Token {
                 token_type: Tokens::PLUS,
@@ -107,8 +104,16 @@ impl Iterator for LexerIterItem {
                 token_type: Tokens::COMMA,
                 literal: String::from(','),
             }),
-            'a'..='z' | 'A'..='Z' | '_' => self.read_identifier(),
-            '0'..='9' => self.read_number(),
+            'a'..='z' | 'A'..='Z' | '_' => {
+                let ident = self.read_identifier();
+                self.index -=1;
+                ident
+            },
+            '0'..='9' => {
+                let number = self.read_number();
+                self.index -=1;
+                number
+            }
             t => Some(Token {
                 token_type: Tokens::ILLEGAL,
                 literal: String::from(*t),
@@ -127,19 +132,20 @@ mod lexer_tester {
     #[test]
     fn test_next_token() {
         let input = "=+(){};";
-        let expected: Vec<Tokens> = vec![
-            Tokens::ASSIGN,
-            Tokens::PLUS,
-            Tokens::LPAREN,
-            Tokens::RPAREN,
-            Tokens::LBRACE,
-            Tokens::RBRACE,
-            Tokens::SEMICOLON,
+
+        let expected: Vec<Token> = vec![
+            Token { token_type: Tokens::ASSIGN, literal: String::from("=") },
+            Token { token_type: Tokens::PLUS, literal: String::from("+") },
+            Token { token_type: Tokens::LPAREN, literal: String::from("(") },
+            Token { token_type: Tokens::RPAREN, literal: String::from(")") },
+            Token { token_type: Tokens::LBRACE, literal: String::from("{") },
+            Token { token_type: Tokens::RBRACE, literal: String::from("}") },
+            Token { token_type: Tokens::SEMICOLON, literal: String::from(";") },
         ];
 
         let lexer = Lexer::new(String::from(input));
 
-        let actual: Vec<Tokens> = lexer.into_iter().map(|lex| lex.token_type).collect();
+        let actual: Vec<Token> = lexer.into_iter().collect();
 
         assert_eq!(expected, actual);
     }
@@ -152,47 +158,47 @@ mod lexer_tester {
         let result = add(five, ten);";
 
         let expected = vec![
-            Tokens::LET,
-            Tokens::IDENT,
-            Tokens::ASSIGN,
-            Tokens::INT,
-            Tokens::SEMICOLON,
-            Tokens::LET,
-            Tokens::IDENT,
-            Tokens::ASSIGN,
-            Tokens::INT,
-            Tokens::SEMICOLON,
-            Tokens::LET,
-            Tokens::IDENT,
-            Tokens::ASSIGN,
-            Tokens::FUNCTION,
-            Tokens::LPAREN,
-            Tokens::IDENT,
-            Tokens::COMMA,
-            Tokens::IDENT,
-            Tokens::RPAREN,
-            Tokens::LBRACE,
-            Tokens::IDENT,
-            Tokens::PLUS,
-            Tokens::IDENT,
-            Tokens::SEMICOLON,
-            Tokens::RBRACE,
-            Tokens::SEMICOLON,
-            Tokens::LET,
-            Tokens::IDENT,
-            Tokens::ASSIGN,
-            Tokens::IDENT,
-            Tokens::LPAREN,
-            Tokens::IDENT,
-            Tokens::COMMA,
-            Tokens::IDENT,
-            Tokens::RPAREN,
-            Tokens::SEMICOLON
+            Token { token_type: Tokens::LET, literal: String::from("let") },
+            Token { token_type: Tokens::IDENT, literal: String::from("five") },
+            Token { token_type: Tokens::ASSIGN, literal: String::from("=") },
+            Token { token_type: Tokens::INT, literal: String::from("5") },
+            Token { token_type: Tokens::SEMICOLON, literal: String::from(";") },
+            Token { token_type: Tokens::LET, literal: String::from("let") },
+            Token { token_type: Tokens::IDENT, literal: String::from("ten") },
+            Token { token_type: Tokens::ASSIGN, literal: String::from("=") },
+            Token { token_type: Tokens::INT, literal: String::from("10") },
+            Token { token_type: Tokens::SEMICOLON, literal: String::from(";") },
+            Token { token_type: Tokens::LET, literal: String::from("let") },
+            Token { token_type: Tokens::IDENT, literal: String::from("add") },
+            Token { token_type: Tokens::ASSIGN, literal: String::from("=") },
+            Token { token_type: Tokens::FUNCTION, literal: String::from("fn") },
+            Token { token_type: Tokens::LPAREN, literal: String::from("(") },
+            Token { token_type: Tokens::IDENT, literal: String::from("x") },
+            Token { token_type: Tokens::COMMA, literal: String::from(",") },
+            Token { token_type: Tokens::IDENT, literal: String::from("y") },
+            Token { token_type: Tokens::RPAREN, literal: String::from(")") },
+            Token { token_type: Tokens::LBRACE, literal: String::from("{") },
+            Token { token_type: Tokens::IDENT, literal: String::from("x") },
+            Token { token_type: Tokens::PLUS, literal: String::from("+") },
+            Token { token_type: Tokens::IDENT, literal: String::from("y") },
+            Token { token_type: Tokens::SEMICOLON, literal: String::from(";") },
+            Token { token_type: Tokens::RBRACE, literal: String::from("}") },
+            Token { token_type: Tokens::SEMICOLON, literal: String::from(";") },
+            Token { token_type: Tokens::LET, literal: String::from("let") },
+            Token { token_type: Tokens::IDENT, literal: String::from("result") },
+            Token { token_type: Tokens::ASSIGN, literal: String::from("=") },
+            Token { token_type: Tokens::IDENT, literal: String::from("add") },
+            Token { token_type: Tokens::LPAREN, literal: String::from("(") },
+            Token { token_type: Tokens::IDENT, literal: String::from("five") },
+            Token { token_type: Tokens::COMMA, literal: String::from(",") },
+            Token { token_type: Tokens::IDENT, literal: String::from("ten") },
+            Token { token_type: Tokens::RPAREN, literal: String::from(")") },
+            Token { token_type: Tokens::SEMICOLON, literal: String::from(";") },
         ];
 
         let lexer = Lexer::new(String::from(input));
 
-        let actual: Vec<Tokens> = lexer.into_iter().map(|lex| lex.token_type).collect();
+        let actual: Vec<Token> = lexer.into_iter().collect();
 
         assert_eq!(expected, actual);
     }

@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq)]
 pub struct Token {
     pub token_type: Tokens,
     pub literal: String
