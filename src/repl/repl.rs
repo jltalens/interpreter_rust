@@ -2,7 +2,6 @@ use std::io::{Write, BufRead};
 
 use crate::lexer::lexer::Lexer;
 
-// function to read the standard input line by line
 pub fn repl(stdin: impl BufRead, mut stdout: impl Write) {
     write!(stdout, ">> ").expect("Failed to write to stdout");
     stdout.flush().expect("Failed to flush stdout");
