@@ -70,6 +70,13 @@ impl LexerIterItem {
         };
         Some(token)
     }
+
+    fn peek_char(&self) -> Option<char> {
+        if self.index + 1 >= self.lexer.input.len() {
+            return None;
+        }
+        Some(self.lexer.input[self.index + 1])
+    }
 }
 
 impl Iterator for LexerIterItem {
@@ -84,10 +91,20 @@ impl Iterator for LexerIterItem {
             self.index += 1
         }
         let output = match &self.lexer.input[self.index] {
-            '=' => Some(Token {
-                token_type: Tokens::ASSIGN,
-                literal: String::from("="),
-            }),
+            '=' => {
+                if self.peek_char() == Some('=') {
+                    self.index += 1;
+                    Some(Token {
+                        token_type: Tokens::EQ,
+                        literal: String::from("=="),
+                    })
+                } else {
+                    Some(Token {
+                        token_type: Tokens::ASSIGN,
+                        literal: String::from('='),
+                    })
+                }
+            },
             '+' => Some(Token {
                 token_type: Tokens::PLUS,
                 literal: String::from('+'),
@@ -120,10 +137,20 @@ impl Iterator for LexerIterItem {
                 token_type: Tokens::MINUS,
                 literal: String::from('-'),
             }),
-            '!' => Some(Token {
-                token_type: Tokens::BANG,
-                literal: String::from('!'),
-            }),
+            '!' => {
+                if self.peek_char() == Some('=') {
+                    self.index += 1;
+                    Some(Token {
+                        token_type: Tokens::NOTEQ,
+                        literal: String::from("!="),
+                    })
+                } else {
+                    Some(Token {
+                        token_type: Tokens::BANG,
+                        literal: String::from('!'),
+                    })
+                }
+            },
             '/' => Some(Token {
                 token_type: Tokens::SLASH,
                 literal: String::from('/'),
@@ -456,6 +483,27 @@ mod lexer_tester {
             Token {
                 token_type: Tokens::RBRACE,
                 literal: String::from("}"),
+            },
+        ];
+
+        let lexer = Lexer::new(String::from(input));
+
+        let actual: Vec<Token> = lexer.into_iter().collect();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_equal() {
+        let input = "== !=";
+        let expected = vec![
+            Token {
+                token_type: Tokens::EQ,
+                literal: String::from("=="),
+            },
+            Token {
+                token_type: Tokens::NOTEQ,
+                literal: String::from("!="),
             },
         ];
 

@@ -31,4 +31,6 @@ pub enum Tokens {
     IF,
     ELSE,
     RETURN,
+    EQ,
+    NOTEQ
 }
