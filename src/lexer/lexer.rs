@@ -5,9 +5,9 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    fn new(value: String) -> Self {
+    pub fn new(value: String) -> Self {
         Self {
-            input: value.chars().collect(),
+            input: value.trim().chars().collect(),
         }
     }
 }
@@ -203,7 +203,8 @@ mod lexer_tester {
         let result = add(five, ten);
         !-/*5;
 
-        5 < 10 > 5;";
+        5 < 10 > 5;
+        ";
 
         let expected = vec![
             Token {
