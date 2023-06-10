@@ -83,8 +83,11 @@ impl Iterator for LexerIterItem {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Can move this functionality to LexerIterItem?
         if self.index == self.lexer.input.len() {
+            self.index += 1;
+            return Some(Token { token_type: Tokens::EOF, literal: String::from("") });
+        }
+        if self.index > self.lexer.input.len() {
             return None;
         }
         while char::is_whitespace(self.lexer.input[self.index]) {
@@ -399,6 +402,10 @@ mod lexer_tester {
                 token_type: Tokens::SEMICOLON,
                 literal: String::from(";"),
             },
+            Token {
+                token_type: Tokens::EOF,
+                literal: String::from(""),
+            },
         ];
 
         let lexer = Lexer::new(String::from(input));
@@ -485,6 +492,10 @@ mod lexer_tester {
                 token_type: Tokens::RBRACE,
                 literal: String::from("}"),
             },
+            Token {
+                token_type: Tokens::EOF,
+                literal: String::from(""),
+            },
         ];
 
         let lexer = Lexer::new(String::from(input));
@@ -505,6 +516,10 @@ mod lexer_tester {
             Token {
                 token_type: Tokens::NOTEQ,
                 literal: String::from("!="),
+            },
+            Token {
+                token_type: Tokens::EOF,
+                literal: String::from(""),
             },
         ];
 
