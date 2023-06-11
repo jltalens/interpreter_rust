@@ -9,6 +9,7 @@ pub struct Parser {
     lexer: Cell<LexerIterItem>,
     current_token: Option<Token>,
     peek_token: Option<Token>,
+    errors: Vec<String>,
 }
 
 impl Parser {
@@ -17,20 +18,21 @@ impl Parser {
             lexer: Cell::new(lexer.into_iter()),
             current_token: None,
             peek_token: None,
+            errors: vec![],
         };
         parser.next_token();
         parser.next_token();
         parser
     }
 
-    fn next_token(&mut self) {
-        self.current_token = self.peek_token.clone();
-        self.peek_token = self.lexer.get_mut().next();
-    }
-
     pub fn parse_program(&mut self) -> Program {
         let program = Program::new();
         self.int_parse_program(program)
+    }
+
+    fn next_token(&mut self) {
+        self.current_token = self.peek_token.clone();
+        self.peek_token = self.lexer.get_mut().next();
     }
 
     fn int_parse_program(&mut self, mut program: Program) -> Program {
@@ -85,8 +87,15 @@ impl Parser {
                 self.next_token();
                 true
             }
-            _ => false,
+            _ => {
+                self.token_errored(token_type);
+                false
+            },
         }
+    }
+
+    fn token_errored(&mut self, token_type: Tokens) {
+        self.errors.push(String::from(format!("expected next token to be {:?}, got {:?} instead", token_type, self.current_token.as_ref().unwrap())))
     }
 }
 #[cfg(test)]
@@ -97,7 +106,7 @@ mod parser_tester {
     use super::Parser;
 
     #[test]
-    fn let_parser() {
+    fn let_parser() -> Result<(), Vec<String>>{
         let input = "
             let x = 5;
             let y = 10;
@@ -108,6 +117,8 @@ mod parser_tester {
         let mut parser = Parser::new(lexer);
 
         let program = parser.parse_program();
+
+        check_parser_errors(parser)?;
 
         assert_eq!(program.len(), 3);
 
@@ -120,5 +131,13 @@ mod parser_tester {
                 }
             }
         }
+        Ok(())
+    }
+
+    fn check_parser_errors(parser: Parser) -> Result<(), Vec<String>> {
+        if parser.errors.len() > 0 {
+            return Err(parser.errors);
+        }
+        Ok(())
     }
 }
