@@ -19,4 +19,5 @@ pub struct Expression {
 #[derive(Debug)]
 pub enum Statement {
     LetStatement(Identifier, Expression),
+    ReturnStatement(Token, Expression),
 }

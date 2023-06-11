@@ -55,6 +55,7 @@ impl Parser {
     fn parse_statement(&mut self) -> Option<Statement> {
         match self.current_token.as_ref() {
             Some(token) if token.token_type == Tokens::LET => self.parse_let(),
+            Some(token) if token.token_type == Tokens::RETURN => self.parse_return(),
             _ => None,
         }
     }
@@ -74,11 +75,25 @@ impl Parser {
         while !(self.current_token.clone().unwrap().token_type != Tokens::SEMICOLON) {
             self.next_token();
         }
+        // TODO: We are ignoring the following expressions;
         let expression = Expression {
             token: self.current_token.clone().unwrap(),
             value: self.current_token.clone().unwrap().literal,
         };
         Some(Statement::LetStatement(identifier, expression))
+    }
+
+    fn parse_return(&mut self) -> Option<Statement> {
+        self.next_token();
+        while !(self.current_token.clone().unwrap().token_type != Tokens::SEMICOLON) {
+            self.next_token();
+        }
+        // TODO: We are ignoring the following expressions;
+        let expression = Expression {
+            token: self.current_token.clone().unwrap(),
+            value: self.current_token.clone().unwrap().literal,
+        };
+        Some(Statement::ReturnStatement(Token { token_type: Tokens::RETURN, literal: self.current_token.clone().unwrap().literal }, expression))
     }
 
     fn expected_token(&mut self, token_type: Tokens) -> bool {
@@ -100,8 +115,9 @@ impl Parser {
 }
 #[cfg(test)]
 mod parser_tester {
-    use crate::ast::ast::Statement::LetStatement;
+    use crate::ast::ast::Statement::{LetStatement, ReturnStatement};
     use crate::lexer::lexer::Lexer;
+    use crate::token::token::Tokens;
 
     use super::Parser;
 
@@ -128,10 +144,39 @@ mod parser_tester {
             match statement {
                 LetStatement(identifier, _) => {
                     assert_eq!(identifier.value, expected_identifiers.remove(0));
-                }
+                },
+                _ => panic!("Unexpected statement")
             }
         }
         Ok(())
+    }
+
+    #[test]
+    fn return_parser() -> Result<(), Vec<String>>{
+        let input = "
+            return 5;
+            return 10;
+            return 1232123;
+        ";
+
+        let lexer = Lexer::new(String::from(input));
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        assert_eq!(program.len(), 3);
+
+
+        check_parser_errors(parser)?;
+
+        for statement in program.into_iter() {
+            match statement {
+                ReturnStatement(token, _) => assert_eq!(token.token_type, Tokens::RETURN),
+                _ => panic!("Unexpected statement")
+            }
+        }
+        Ok(())
+
+
     }
 
     fn check_parser_errors(parser: Parser) -> Result<(), Vec<String>> {
