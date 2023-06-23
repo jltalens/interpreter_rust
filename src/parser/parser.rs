@@ -3,13 +3,20 @@ use crate::{
     lexer::lexer::{Lexer, LexerIterItem},
     token::token::{Token, Tokens},
 };
-use std::cell::Cell;
+use std::{cell::Cell, collections::HashMap};
+
+type PrefixParseFn = fn() -> Expression;
+
+type InfixParseFn = fn(Expression) -> Expression;
 
 pub struct Parser {
     lexer: Cell<LexerIterItem>,
     current_token: Option<Token>,
     peek_token: Option<Token>,
     errors: Vec<String>,
+
+    prefix_parser_fns: HashMap<Tokens, PrefixParseFn>,
+    infix_parser_fns: HashMap<Tokens, InfixParseFn>,
 }
 
 impl Parser {
@@ -19,6 +26,8 @@ impl Parser {
             current_token: None,
             peek_token: None,
             errors: vec![],
+            infix_parser_fns: HashMap::new(),
+            prefix_parser_fns: HashMap::new(),
         };
         parser.next_token();
         parser.next_token();
@@ -56,6 +65,7 @@ impl Parser {
         match self.current_token.as_ref() {
             Some(token) if token.token_type == Tokens::LET => self.parse_let(),
             Some(token) if token.token_type == Tokens::RETURN => self.parse_return(),
+            Some(token) => self.parse_expression(),
             _ => None,
         }
     }
@@ -76,11 +86,7 @@ impl Parser {
             self.next_token();
         }
         // TODO: We are ignoring the following expressions;
-        let expression = Expression {
-            token: self.current_token.clone().unwrap(),
-            value: self.current_token.clone().unwrap().literal,
-        };
-        Some(Statement::LetStatement(identifier, expression))
+        Some(Statement::LetStatement(identifier.clone(), Expression::Identifier(identifier)))
     }
 
     fn parse_return(&mut self) -> Option<Statement> {
@@ -89,12 +95,22 @@ impl Parser {
             self.next_token();
         }
         // TODO: We are ignoring the following expressions;
-        let expression = Expression {
+        let expression = Expression::Identifier(Identifier {
             token: self.current_token.clone().unwrap(),
             value: self.current_token.clone().unwrap().literal,
-        };
+        });
         Some(Statement::ReturnStatement(Token { token_type: Tokens::RETURN, literal: self.current_token.clone().unwrap().literal }, expression))
     }
+
+    fn parse_expression(&mut self) -> Option<Statement> {
+        //TODO: Redo this
+        let expression = self.parse_prefix(self.current_token.clone().unwrap().token_type);
+        if self.peek_token.clone().unwrap().token_type == Tokens::SEMICOLON {
+            self.next_token();
+        }
+        Some(Statement::ExpressionStatement(self.current_token.clone().unwrap(), expression))
+    }
+
 
     fn expected_token(&mut self, token_type: Tokens) -> bool {
         match self.peek_token.clone() {
@@ -112,12 +128,21 @@ impl Parser {
     fn token_errored(&mut self, token_type: Tokens) {
         self.errors.push(String::from(format!("expected next token to be {:?}, got {:?} instead", token_type, self.current_token.as_ref().unwrap())))
     }
+
+    fn register_prefix(&mut self, token_type: Tokens, prefix_parser_fn: PrefixParseFn) {
+        self.prefix_parser_fns.insert(token_type, prefix_parser_fn);
+    }
+
+    fn register_infix(&mut self, token_type: Tokens, infix_parser_fn: InfixParseFn) {
+        self.infix_parser_fns.insert(token_type, infix_parser_fn);
+    }
 }
 #[cfg(test)]
 mod parser_tester {
-    use crate::ast::ast::Statement::{LetStatement, ReturnStatement};
+    use crate::ast::ast::{Identifier, Expression, Statement};
+    use crate::ast::ast::Statement::{LetStatement, ReturnStatement, ExpressionStatement};
     use crate::lexer::lexer::Lexer;
-    use crate::token::token::Tokens;
+    use crate::token::token::{Tokens, Token};
 
     use super::Parser;
 
@@ -178,6 +203,26 @@ mod parser_tester {
 
 
     }
+
+    #[test]
+    fn identifier_expression() -> Result<(), Vec<String>>{
+        let input = "foobar;";
+
+        let lexer = Lexer::new(String::from(input));
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+        
+        check_parser_errors(parser)?;
+
+        assert_eq!(program.len(), 1);
+
+        assert_eq!(vec![Statement::ExpressionStatement(Expression::Identifier(Identifier { token: Token {token_type: Tokens::IDENT, literal: String::from("foobar")}, value: String::from("foobar") }))], program);
+
+        Ok(())
+
+
+    }
+
 
     fn check_parser_errors(parser: Parser) -> Result<(), Vec<String>> {
         if parser.errors.len() > 0 {
